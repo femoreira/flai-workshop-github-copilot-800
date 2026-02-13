@@ -19,6 +19,7 @@ class Team(models.Model):
 
 class User(models.Model):
     """User model representing team members"""
+    _id = models.CharField(max_length=100, primary_key=True)
     name = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=200)
@@ -36,6 +37,7 @@ class User(models.Model):
 
 class Activity(models.Model):
     """Activity model representing workout activities"""
+    _id = models.CharField(max_length=100, primary_key=True)
     user_id = models.CharField(max_length=100)
     activity_type = models.CharField(max_length=100)
     duration = models.IntegerField()  # minutes
@@ -55,6 +57,7 @@ class Activity(models.Model):
 
 class Leaderboard(models.Model):
     """Leaderboard model for ranking users"""
+    _id = models.CharField(max_length=100, primary_key=True)
     user_id = models.CharField(max_length=100)
     user_name = models.CharField(max_length=200)
     team_id = models.CharField(max_length=100)
@@ -71,29 +74,14 @@ class Leaderboard(models.Model):
         return f"{self.rank}. {self.user_name} - {self.total_points} pts"
 
 
-class Exercise(djongo_models.Model):
-    """Embedded model for workout exercises"""
-    name = models.CharField(max_length=200)
-    sets = models.IntegerField()
-    reps = models.IntegerField(null=True, blank=True)
-    duration = models.CharField(max_length=100, null=True, blank=True)
-    distance = models.CharField(max_length=100, null=True, blank=True)
-
-    class Meta:
-        abstract = True
-
-
 class Workout(models.Model):
     """Workout model representing workout suggestions"""
+    _id = models.CharField(max_length=100, primary_key=True)
     name = models.CharField(max_length=200)
     description = models.TextField()
     duration = models.IntegerField()  # minutes
     difficulty = models.CharField(max_length=50)
-    exercises = djongo_models.ArrayField(
-        model_container=Exercise,
-        null=True,
-        blank=True
-    )
+    exercises = models.TextField(null=True, blank=True)  # Will be handled by serializer
     category = models.CharField(max_length=100)
     created_at = models.DateTimeField()
 

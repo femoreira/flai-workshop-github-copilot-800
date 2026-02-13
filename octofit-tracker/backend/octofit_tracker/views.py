@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from bson import ObjectId
 from .models import Team, User, Activity, Leaderboard, Workout
 from .serializers import (
     TeamSerializer, UserSerializer, ActivitySerializer,
@@ -15,6 +16,22 @@ class TeamViewSet(viewsets.ModelViewSet):
     """
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
+    lookup_field = '_id'
+
+    def get_object(self):
+        """Override to handle ObjectId conversion for MongoDB"""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Find object by comparing string representation of _id
+        for obj in queryset:
+            if str(obj._id) == lookup_value:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        
+        from rest_framework.exceptions import NotFound
+        raise NotFound('No Team matches the given query.')
 
     @action(detail=True, methods=['get'])
     def members(self, request, pk=None):
@@ -32,6 +49,52 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    lookup_field = '_id'
+
+    def get_object(self):
+        """Override to handle ObjectId conversion for MongoDB"""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Find object by comparing string representation of _id
+        for obj in queryset:
+            if str(obj._id) == lookup_value:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        
+        from rest_framework.exceptions import NotFound
+        raise NotFound('No User matches the given query.')
+
+    def update(self, request, *args, **kwargs):
+        """Override update to use PyMongo directly for MongoDB"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # Update using PyMongo directly
+        from pymongo import MongoClient
+        client = MongoClient('mongodb://localhost:27017/')
+        db = client['octofit_db']
+        
+        update_data = {}
+        for key, value in serializer.validated_data.items():
+            if  key != '_id':  # Don't update _id
+                update_data[key] = value
+        
+        if update_data:
+            result = db.users.update_one(
+                {'_id': ObjectId(str(instance._id))},
+                {'$set': update_data}
+            )
+        
+        # Fetch updated user
+        updated_user = self.get_object()
+        serializer = self.get_serializer(updated_user)
+        
+        return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
     def activities(self, request, pk=None):
@@ -62,6 +125,22 @@ class ActivityViewSet(viewsets.ModelViewSet):
     """
     queryset = Activity.objects.all()
     serializer_class = ActivitySerializer
+    lookup_field = '_id'
+
+    def get_object(self):
+        """Override to handle ObjectId conversion for MongoDB"""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Find object by comparing string representation of _id
+        for obj in queryset:
+            if str(obj._id) == lookup_value:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        
+        from rest_framework.exceptions import NotFound
+        raise NotFound('No Activity matches the given query.')
 
     @action(detail=False, methods=['get'])
     def by_user(self, request):
@@ -97,6 +176,22 @@ class LeaderboardViewSet(viewsets.ModelViewSet):
     """
     queryset = Leaderboard.objects.all().order_by('rank')
     serializer_class = LeaderboardSerializer
+    lookup_field = '_id'
+
+    def get_object(self):
+        """Override to handle ObjectId conversion for MongoDB"""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Find object by comparing string representation of _id
+        for obj in queryset:
+            if str(obj._id) == lookup_value:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        
+        from rest_framework.exceptions import NotFound
+        raise NotFound('No Leaderboard matches the given query.')
 
     @action(detail=False, methods=['get'])
     def by_team(self, request):
@@ -127,6 +222,22 @@ class WorkoutViewSet(viewsets.ModelViewSet):
     """
     queryset = Workout.objects.all()
     serializer_class = WorkoutSerializer
+    lookup_field = '_id'
+
+    def get_object(self):
+        """Override to handle ObjectId conversion for MongoDB"""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Find object by comparing string representation of _id
+        for obj in queryset:
+            if str(obj._id) == lookup_value:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        
+        from rest_framework.exceptions import NotFound
+        raise NotFound('No Workout matches the given query.')
 
     @action(detail=False, methods=['get'])
     def by_difficulty(self, request):
